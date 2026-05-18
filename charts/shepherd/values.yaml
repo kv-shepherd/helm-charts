@@ -101,6 +101,7 @@ server:
   podAnnotations: {}
   podSecurityContext:
     runAsNonRoot: true
+    runAsUser: 65532
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
@@ -129,6 +130,7 @@ web:
   podAnnotations: {}
   podSecurityContext:
     runAsNonRoot: true
+    runAsUser: 1001
   securityContext:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false
