@@ -79,12 +79,15 @@ When `secrets.existingSecret` is set, the Secret must contain:
 - `POSTGRES_PASSWORD` when `postgresql.enabled=true`
 
 Image references are assembled from `global.imageRegistry`,
-`global.imageRepositoryPrefix`, and the per-component image repository:
+`global.imageRepositoryPrefix`, `global.imageTag`, and the per-component image
+repository. The public defaults use GHCR and the `latest` tag unless a tag is
+set globally or per component:
 
 ```yaml
 global:
   imageRegistry: ghcr.io
   imageRepositoryPrefix: kv-shepherd
+  imageTag: latest
 server:
   image:
     repository: shepherd-server

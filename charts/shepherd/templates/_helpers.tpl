@@ -36,7 +36,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "shepherd.labels" -}}
 helm.sh/chart: {{ include "shepherd.chart" . }}
 {{ include "shepherd.selectorLabels" . }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- with .Chart.AppVersion }}
+app.kubernetes.io/version: {{ . | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: shepherd
 {{- end -}}
@@ -110,5 +112,6 @@ app.kubernetes.io/component: {{ .component }}
 {{- $parts = append $parts . -}}
 {{- end -}}
 {{- $parts = append $parts $image.repository -}}
-{{- printf "%s:%s" (join "/" $parts) (default $root.Chart.AppVersion $image.tag) -}}
+{{- $tag := default (default "latest" $root.Values.global.imageTag) $image.tag -}}
+{{- printf "%s:%s" (join "/" $parts) $tag -}}
 {{- end -}}

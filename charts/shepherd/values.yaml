@@ -12,6 +12,7 @@ publicBaseUrl: https://localhost
 global:
   imageRegistry: ghcr.io
   imageRepositoryPrefix: kv-shepherd
+  imageTag: ""
   imagePullSecrets: []
 
 serviceAccount:

@@ -17,6 +17,7 @@
       "properties": {
         "imageRegistry": { "type": "string" },
         "imageRepositoryPrefix": { "type": "string" },
+        "imageTag": { "type": "string" },
         "imagePullSecrets": { "type": "array" }
       },
       "additionalProperties": false

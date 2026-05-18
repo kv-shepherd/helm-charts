@@ -25,7 +25,8 @@ Use this path to test non-GHCR registries without changing tracked values:
 ```bash
 make template-registry \
   IMAGE_REGISTRY=registry.example.com \
-  IMAGE_REPOSITORY_PREFIX=team/shepherd
+  IMAGE_REPOSITORY_PREFIX=team/shepherd \
+  IMAGE_TAG=latest
 ```
 
 The public defaults remain:

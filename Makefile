@@ -1,10 +1,9 @@
 .PHONY: lint template template-external template-managed-access template-registry package validate
 
 HELM_IMAGE ?= alpine/helm:3.19.0
-APP_VERSION ?= $(shell awk -F': ' '$$1 == "appVersion" { gsub(/"/, "", $$2); print $$2 }' charts/shepherd/Chart.yaml)
 IMAGE_REGISTRY ?= ghcr.io
 IMAGE_REPOSITORY_PREFIX ?= kv-shepherd
-IMAGE_TAG ?= $(APP_VERSION)
+IMAGE_TAG ?= latest
 
 lint:
 	docker run --rm -v "$(CURDIR):/work" -w /work $(HELM_IMAGE) lint charts/shepherd
