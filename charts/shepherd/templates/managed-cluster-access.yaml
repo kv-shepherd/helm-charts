@@ -1,0 +1,218 @@
+{{- if .Values.managedClusterAccess.enabled -}}
+{{- $root := . -}}
+{{- $name := include "shepherd.managedClusterAccessName" . -}}
+{{- $serviceAccountName := include "shepherd.managedClusterServiceAccountName" . -}}
+{{- if .Values.managedClusterAccess.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $serviceAccountName }}
+  namespace: {{ include "shepherd.namespace" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+  {{- with .Values.managedClusterAccess.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: {{ .Values.managedClusterAccess.serviceAccount.automount }}
+{{- end }}
+{{- if .Values.managedClusterAccess.rbac.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "shepherd.managedClusterGlobalRoleName" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - storageclasses
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - storageprofiles
+    verbs:
+      - get
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - kubevirts
+    verbs:
+      - get
+  {{- with .Values.managedClusterAccess.rbac.cluster.extraRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "shepherd.managedClusterGlobalRoleName" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ include "shepherd.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "shepherd.managedClusterGlobalRoleName" . }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "shepherd.managedClusterNamespacedRoleName" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+rules:
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+      - delete
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstances
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachines/start
+      - virtualmachines/stop
+      - virtualmachines/restart
+      - virtualmachineinstances/pause
+      - virtualmachineinstances/unpause
+    verbs:
+      - update
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachineinstances/console
+      - virtualmachineinstances/vnc
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - list
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes
+    verbs:
+      - get
+  - apiGroups:
+      - cdi.kubevirt.io
+    resources:
+      - datavolumes/source
+    verbs:
+      - create
+  {{- with .Values.managedClusterAccess.rbac.namespaced.extraRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- if .Values.managedClusterAccess.rbac.namespaced.grantAllNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "shepherd.managedClusterNamespacedRoleName" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ include "shepherd.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "shepherd.managedClusterNamespacedRoleName" . }}
+{{- else }}
+{{- $targetNamespaces := .Values.managedClusterAccess.rbac.namespaced.targetNamespaces -}}
+{{- if not $targetNamespaces -}}
+{{- $targetNamespaces = list (include "shepherd.namespace" .) -}}
+{{- end -}}
+{{- range $targetNamespace := $targetNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ $targetNamespace }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" $root "component" "managed-cluster-access") | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccountName }}
+    namespace: {{ include "shepherd.namespace" $root }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "shepherd.managedClusterNamespacedRoleName" $root }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if .Values.managedClusterAccess.tokenSecret.create }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "shepherd.managedClusterTokenSecretName" . }}
+  namespace: {{ include "shepherd.namespace" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "managed-cluster-access") | nindent 4 }}
+  annotations:
+    kubernetes.io/service-account.name: {{ $serviceAccountName | quote }}
+    {{- with .Values.managedClusterAccess.tokenSecret.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+type: kubernetes.io/service-account-token
+{{- end }}
+{{- end }}

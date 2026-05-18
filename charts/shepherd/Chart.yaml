@@ -1,0 +1,16 @@
+apiVersion: v2
+name: shepherd
+description: KubeVirt Shepherd governance platform
+type: application
+version: 0.1.0
+appVersion: "0.1.1-alpha.5"
+home: https://github.com/kv-shepherd/shepherd
+sources:
+  - https://github.com/kv-shepherd/shepherd
+keywords:
+  - kubevirt
+  - virtual-machines
+  - governance
+  - self-service
+maintainers:
+  - name: KubeVirt Shepherd Authors

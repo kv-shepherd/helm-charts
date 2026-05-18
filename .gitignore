@@ -1,0 +1,6 @@
+.DS_Store
+dist/
+*.tgz
+charts/*/charts/
+charts/*/Chart.lock
+.helm/

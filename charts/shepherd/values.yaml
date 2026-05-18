@@ -1,0 +1,161 @@
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  create: false
+  name: ""
+  labels: {}
+  annotations: {}
+
+publicBaseUrl: https://localhost
+
+global:
+  imageRegistry: ghcr.io
+  imageRepositoryPrefix: kv-shepherd
+  imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+rbac:
+  create: false
+  clusterWide: false
+  rules: []
+  clusterRules: []
+
+managedClusterAccess:
+  enabled: false
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+    automount: false
+  rbac:
+    create: true
+    cluster:
+      extraRules: []
+    namespaced:
+      grantAllNamespaces: true
+      targetNamespaces: []
+      extraRules: []
+  tokenSecret:
+    create: false
+    name: ""
+    annotations: {}
+
+secrets:
+  existingSecret: ""
+
+security:
+  sessionSecret: ""
+  encryptionKey: ""
+
+database:
+  url: ""
+  autoApplyVersionedMigrations: true
+  autoMigrate: false
+
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "18"
+    pullPolicy: IfNotPresent
+  auth:
+    username: shepherd
+    password: ""
+    database: shepherd_db
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClassName: ""
+  resources:
+    requests:
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+server:
+  replicaCount: 1
+  image:
+    repository: shepherd-server
+    tag: ""
+    pullPolicy: IfNotPresent
+  port: 8080
+  logLevel: info
+  logFormat: json
+  allowedOrigins: ""
+  allowCredentials: true
+  unsafeAllowAllOrigins: false
+  trustedProxies: "127.0.0.1/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+  readHeaderTimeout: 10s
+  idleTimeout: 2m
+  maxRequestBodyBytes: 10485760
+  riverMaxWorkers: 10
+  riverCompletedJobRetentionPeriod: 24h
+  workerGeneralPoolSize: 100
+  workerK8sPoolSize: 50
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+web:
+  replicaCount: 1
+  image:
+    repository: shepherd-web
+    tag: ""
+    pullPolicy: IfNotPresent
+  port: 3000
+  nextPublicApiUrl: /api/v1
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+service:
+  type: ClusterIP
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  apiPath: /api
+  webPath: /
+  hosts:
+    - host: shepherd.example.com
+  tls: []

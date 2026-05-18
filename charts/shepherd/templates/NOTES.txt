@@ -1,0 +1,36 @@
+KubeVirt Shepherd has been installed.
+
+Release: {{ .Release.Name }}
+Namespace: {{ include "shepherd.namespace" . }}
+
+Services:
+  Web:    {{ include "shepherd.componentName" (dict "root" . "component" "web") }}:{{ .Values.web.port }}
+  Server: {{ include "shepherd.componentName" (dict "root" . "component" "server") }}:{{ .Values.server.port }}
+{{- if .Values.postgresql.enabled }}
+  DB:     {{ include "shepherd.postgresqlName" . }}:5432
+{{- else }}
+  DB:     external DATABASE_URL
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+Ingress routes /api to the server service and / to the web service.
+{{- else }}
+Ingress is disabled. Forward the web service locally with:
+  kubectl -n {{ include "shepherd.namespace" . }} port-forward svc/{{ include "shepherd.componentName" (dict "root" . "component" "web") }} 3000:{{ .Values.web.port }}
+{{- end }}
+
+For production, set stable security.sessionSecret and security.encryptionKey
+values or provide secrets.existingSecret. Generated values are reused on
+upgrades when Helm can read the existing Secret.
+
+{{- if .Values.managedClusterAccess.enabled }}
+
+Managed cluster access has been rendered for this cluster.
+  ServiceAccount: {{ include "shepherd.namespace" . }}/{{ include "shepherd.managedClusterServiceAccountName" . }}
+  RBAC scope: {{- if .Values.managedClusterAccess.rbac.namespaced.grantAllNamespaces }} all namespaces{{- else }} selected namespaces{{- end }}
+
+Create or retrieve a kubeconfig for this ServiceAccount, then import that
+kubeconfig into Shepherd. Admin kubeconfigs are acceptable only for
+non-production evaluation and are not recommended for production.
+See docs/MANAGED_CLUSTER_RBAC.md in the chart repository.
+{{- end }}
