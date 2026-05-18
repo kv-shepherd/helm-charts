@@ -34,6 +34,10 @@ spec:
       labels:
         {{- include "shepherd.componentSelectorLabels" (dict "root" . "component" "postgresql") | nindent 8 }}
     spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: postgresql
           image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
