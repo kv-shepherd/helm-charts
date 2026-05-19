@@ -47,6 +47,8 @@ spec:
               value: {{ .Values.web.nextPublicApiUrl | quote }}
             - name: INTERNAL_API_URL
               value: "http://{{ include "shepherd.componentName" (dict "root" . "component" "server") }}:{{ .Values.server.port }}"
+            - name: SHEPHERD_PUBLIC_BASE_URL
+              value: {{ .Values.publicBaseUrl | default "https://localhost" | quote }}
             {{- with .Values.web.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
