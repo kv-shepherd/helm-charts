@@ -1,0 +1,57 @@
+{{- if .Values.bootstrapSeed.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "shepherd.fullname" . }}-bootstrap-seed
+  namespace: {{ include "shepherd.namespace" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "bootstrap-seed") | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "20"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    {{- with .Values.bootstrapSeed.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.bootstrapSeed.backoffLimit }}
+  {{- with .Values.bootstrapSeed.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "shepherd.componentSelectorLabels" (dict "root" . "component" "bootstrap-seed") | nindent 8 }}
+      {{- with .Values.bootstrapSeed.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "shepherd.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.server.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: seed
+          image: "{{ include "shepherd.image" (dict "root" . "image" .Values.server.image) }}"
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          command:
+            - /usr/local/bin/seed
+          envFrom:
+            - configMapRef:
+                name: {{ include "shepherd.configName" . }}
+            - secretRef:
+                name: {{ include "shepherd.secretName" . }}
+          {{- with .Values.server.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.bootstrapSeed.resources | nindent 12 }}
+{{- end }}

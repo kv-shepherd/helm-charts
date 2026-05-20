@@ -10,18 +10,43 @@ Kubernetes-native Helm charts for KubeVirt Shepherd.
 
 ## Quick Start
 
-Install with the default GHCR images and bundled PostgreSQL 18:
+Install with the published OCI chart, default GHCR images, and bundled
+PostgreSQL 18:
 
 ```bash
-helm upgrade --install shepherd ./charts/shepherd \
-  --namespace shepherd --create-namespace
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+  --namespace shepherd --create-namespace \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=shepherd.example.com \
+  --set postgresql.persistence.storageClassName=<storage-class> \
+  --wait
 ```
+
+When ingress is enabled and `publicBaseUrl` is omitted, the chart derives
+`https://<first-ingress-host>` automatically. Set `publicBaseUrl` explicitly
+only when the externally visible URL differs from the ingress host.
+
+If you omit `postgresql.persistence.storageClassName`, Kubernetes uses the
+cluster's default StorageClass. For evaluation-only installs without persistent
+storage, set `postgresql.persistence.enabled=false`; this creates an ephemeral
+volume and data can be lost when the PostgreSQL Pod is rescheduled.
+
+When ingress is enabled, provide your normal TLS Secret through `ingress.tls`
+for production. If `ingress.tls` is omitted, the chart generates a self-signed
+certificate by default so first deploys still come up over HTTPS.
+
+The default install also runs the bootstrap seed Job, creating `admin / admin`
+for first login with a forced password change.
+
+For IP-only evaluation without DNS or ingress, expose the chart's HTTPS edge
+proxy with `edge.service.type=NodePort`; it routes `/api` and `/` through one
+service.
 
 For production, use an external PostgreSQL 18 database and stable secrets in a
 values file:
 
 ```bash
-helm upgrade --install shepherd ./charts/shepherd \
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
   --namespace shepherd --create-namespace \
   -f values.prod.yaml
 ```
@@ -29,6 +54,9 @@ helm upgrade --install shepherd ./charts/shepherd \
 See [`charts/shepherd`](charts/shepherd) for chart values and
 [docs/MANAGED_CLUSTER_RBAC.md](docs/MANAGED_CLUSTER_RBAC.md) for managed-cluster
 RBAC and kubeconfig creation.
+
+For local chart development before publishing, replace the OCI reference with
+`./charts/shepherd`.
 
 ## Development
 

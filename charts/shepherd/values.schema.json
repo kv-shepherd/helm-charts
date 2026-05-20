@@ -23,8 +23,7 @@
       "additionalProperties": false
     },
     "publicBaseUrl": {
-      "type": "string",
-      "minLength": 1
+      "type": "string"
     },
     "serviceAccount": {
       "type": "object",
@@ -167,12 +166,94 @@
       "additionalProperties": false
     },
     "server": { "$ref": "#/definitions/workload" },
+    "bootstrapSeed": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "backoffLimit": { "type": "integer", "minimum": 0 },
+        "ttlSecondsAfterFinished": { "type": "integer", "minimum": 0 },
+        "annotations": { "type": "object" },
+        "podAnnotations": { "type": "object" },
+        "resources": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
     "web": { "$ref": "#/definitions/workload" },
     "service": {
       "type": "object",
       "properties": {
         "type": { "type": "string" },
         "annotations": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string", "minLength": 1 },
+            "tag": { "type": "string", "minLength": 1 },
+            "pullPolicy": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "existingSecret": { "type": "string" },
+            "selfSigned": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "secretName": { "type": "string" },
+                "commonName": { "type": "string", "minLength": 1 },
+                "dnsNames": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "ipAddresses": {
+                  "type": "array",
+                  "items": { "type": "string", "minLength": 1 }
+                },
+                "durationDays": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "annotations": { "type": "object" },
+            "nodePorts": {
+              "type": "object",
+              "properties": {
+                "http": {
+                  "type": ["integer", "null"],
+                  "minimum": 30000,
+                  "maximum": 32767
+                },
+                "https": {
+                  "type": ["integer", "null"],
+                  "minimum": 30000,
+                  "maximum": 32767
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "podAnnotations": { "type": "object" },
+        "resources": { "type": "object" }
       },
       "additionalProperties": false
     },
@@ -185,6 +266,15 @@
         "apiPath": { "type": "string", "minLength": 1 },
         "webPath": { "type": "string", "minLength": 1 },
         "hosts": { "type": "array" },
+        "selfSigned": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "secretName": { "type": "string" },
+            "durationDays": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
         "tls": { "type": "array" }
       },
       "additionalProperties": false

@@ -1,0 +1,79 @@
+{{- if .Values.edge.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "shepherd.componentName" (dict "root" . "component" "edge") }}
+  namespace: {{ include "shepherd.namespace" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "edge") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "shepherd.componentSelectorLabels" (dict "root" . "component" "edge") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "shepherd.componentSelectorLabels" (dict "root" . "component" "edge") | nindent 8 }}
+      {{- with .Values.edge.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: edge
+          image: "{{ .Values.edge.image.repository }}:{{ .Values.edge.image.tag }}"
+          imagePullPolicy: {{ .Values.edge.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.edge.port }}
+              protocol: TCP
+            {{- if .Values.edge.tls.enabled }}
+            - name: https
+              containerPort: {{ .Values.edge.tls.port }}
+              protocol: TCP
+            {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            {{- if .Values.edge.tls.enabled }}
+            - name: tls
+              mountPath: /etc/nginx/tls
+              readOnly: true
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: {{ ternary "https" "http" .Values.edge.tls.enabled }}
+              {{- if .Values.edge.tls.enabled }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: {{ ternary "https" "http" .Values.edge.tls.enabled }}
+              {{- if .Values.edge.tls.enabled }}
+              scheme: HTTPS
+              {{- end }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.edge.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "shepherd.componentName" (dict "root" . "component" "edge") }}-config
+        {{- if .Values.edge.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.edge.tls.existingSecret | default (include "shepherd.edgeTLSSecretName" .) }}
+        {{- end }}
+{{- end }}

@@ -11,33 +11,118 @@ This chart deploys KubeVirt Shepherd with:
 - optional managed-cluster ServiceAccount and least-privilege RBAC
 - optional PostgreSQL 18 StatefulSet for evaluation installs
 
+## Bundled PostgreSQL Storage
+
+The bundled PostgreSQL 18 install is intended for evaluation and small
+single-cluster installs. Persistent PostgreSQL requires a StorageClass:
+
+```bash
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+  --namespace shepherd --create-namespace \
+  --set postgresql.persistence.storageClassName=<storage-class> \
+  --wait
+```
+
+If `postgresql.persistence.storageClassName` is empty, Kubernetes uses the
+cluster default StorageClass. On clusters without a default StorageClass, the
+PostgreSQL PVC will stay pending until a StorageClass is selected.
+
+For temporary evaluation installs only, disable persistence:
+
+```bash
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+  --namespace shepherd --create-namespace \
+  --set postgresql.persistence.enabled=false \
+  --wait
+```
+
+That uses an `emptyDir` volume. PostgreSQL data can be lost when the Pod is
+deleted, evicted, or rescheduled, so this mode is not recommended for
+production.
+
+The chart runs a bootstrap seed Job by default. It creates the built-in roles
+and the first `admin / admin` account with forced password change. Set
+`bootstrapSeed.enabled=false` only when you seed the database outside Helm.
+
 Production installs should prefer an external PostgreSQL 18 service and stable
 secrets:
 
 ```bash
-helm upgrade --install shepherd ./charts/shepherd \
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
   --namespace shepherd --create-namespace \
   --set publicBaseUrl=https://shepherd.example.com \
   --set postgresql.enabled=false \
   --set-string database.url='<postgres-18-dsn>' \
   --set-string security.sessionSecret='<stable-session-secret>' \
-  --set-string security.encryptionKey='<64-character-hex-key>'
+  --set-string security.encryptionKey='<64-character-hex-key>' \
+  --wait
 ```
 
 Enable ingress when the cluster has an ingress controller:
 
 ```bash
-helm upgrade --install shepherd ./charts/shepherd \
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
   --namespace shepherd --create-namespace \
   --set ingress.enabled=true \
   --set ingress.className=nginx \
   --set ingress.hosts[0].host=shepherd.example.com \
-  --set publicBaseUrl=https://shepherd.example.com \
   --set postgresql.enabled=false \
   --set-string database.url='<postgres-18-dsn>' \
   --set-string security.sessionSecret='<stable-session-secret>' \
-  --set-string security.encryptionKey='<64-character-hex-key>'
+  --set-string security.encryptionKey='<64-character-hex-key>' \
+  --wait
 ```
+
+Production installs should provide a certificate from your normal TLS process
+and set `ingress.tls` to that Secret. If `ingress.tls` is omitted,
+`ingress.selfSigned.enabled=true` lets Helm create an initial self-signed TLS
+Secret for bootstrap and evaluation installs.
+
+When ingress is enabled and `publicBaseUrl` is empty, the chart derives it from
+the first ingress host. With the default self-signed TLS behavior this becomes
+`https://<first-ingress-host>`.
+
+## IP, NodePort, and Port-Forward Access
+
+Ingress and DNS are recommended for production, but they are not required for a
+first install. The chart includes an edge proxy that routes `/api` to the
+backend and `/` to the web UI, matching the Docker Compose topology. To access
+Shepherd through a node IP, expose the edge service as a NodePort:
+
+```bash
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+  --namespace shepherd --create-namespace \
+  --set edge.service.type=NodePort \
+  --set edge.service.nodePorts.https=30443 \
+  --set edge.tls.selfSigned.commonName=<node-ip> \
+  --set edge.tls.selfSigned.ipAddresses[0]=<node-ip> \
+  --set postgresql.persistence.storageClassName=<storage-class> \
+  --wait
+```
+
+Then open `https://<node-ip>:30443` and accept the bootstrap self-signed
+certificate. If `edge.service.nodePorts.https` is omitted, Kubernetes allocates
+a port; read it with:
+
+```bash
+kubectl -n shepherd get svc shepherd-edge \
+  -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}'
+```
+
+For local-only access, keep the default `ClusterIP` service and use
+port-forwarding:
+
+```bash
+kubectl -n shepherd port-forward svc/shepherd-edge 3443:443
+```
+
+Then open `https://127.0.0.1:3443`. External OIDC/LDAP callback flows need a
+stable externally reachable `publicBaseUrl`; plain IP or port-forward access is
+best kept for evaluation and internal testing.
+
+`publicBaseUrl` is optional for basic IP access. Set it to
+`https://<node-ip>:<node-port>` when you want stable browser-facing redirects or
+external auth callbacks.
 
 Generated secrets are acceptable for evaluation, but production installs should
 set `security.sessionSecret` and `security.encryptionKey`, or use
@@ -59,7 +144,7 @@ For clusters managed by Shepherd, prefer a dedicated managed-cluster
 ServiceAccount and kubeconfig:
 
 ```bash
-helm upgrade --install shepherd ./charts/shepherd \
+helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
   --namespace shepherd --create-namespace \
   --set managedClusterAccess.enabled=true
 ```
@@ -80,14 +165,14 @@ When `secrets.existingSecret` is set, the Secret must contain:
 
 Image references are assembled from `global.imageRegistry`,
 `global.imageRepositoryPrefix`, `global.imageTag`, and the per-component image
-repository. The public defaults use GHCR and the `latest` tag unless a tag is
-set globally or per component:
+repository. The public defaults use GHCR and the chart `appVersion` unless a
+tag is set globally or per component:
 
 ```yaml
 global:
   imageRegistry: ghcr.io
   imageRepositoryPrefix: kv-shepherd
-  imageTag: latest
+  imageTag: ""
 server:
   image:
     repository: shepherd-server
@@ -95,3 +180,19 @@ web:
   image:
     repository: shepherd-web
 ```
+
+## Publishing
+
+Helm does not host project charts on `helm.sh`. Publish this chart either as an
+OCI chart, for example `ghcr.io/kv-shepherd/charts/shepherd`, or as an
+index.yaml-based chart repository such as GitHub Pages. Artifact Hub can index
+both forms.
+
+Before public listing, prepare:
+
+- a released chart package with a SemVer `version`
+- matching Shepherd container images for the documented default tag
+- public chart storage, preferably GHCR OCI or GitHub Pages
+- an Artifact Hub publisher account or organization
+- `artifacthub-repo.yml` metadata for ownership/verified publisher
+- optional provenance or Sigstore signing for release integrity

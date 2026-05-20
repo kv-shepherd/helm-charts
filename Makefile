@@ -3,7 +3,7 @@
 HELM_IMAGE ?= alpine/helm:3.19.0
 IMAGE_REGISTRY ?= ghcr.io
 IMAGE_REPOSITORY_PREFIX ?= kv-shepherd
-IMAGE_TAG ?= latest
+IMAGE_TAG ?= $(shell sed -nE 's/^appVersion:[[:space:]]*"?([^"]+)"?/\1/p' charts/shepherd/Chart.yaml)
 
 lint:
 	docker run --rm -v "$(CURDIR):/work" -w /work $(HELM_IMAGE) lint charts/shepherd
@@ -25,8 +25,7 @@ template-registry:
 	docker run --rm -v "$(CURDIR):/work" -w /work $(HELM_IMAGE) template shepherd charts/shepherd --namespace shepherd \
 		--set global.imageRegistry=$(IMAGE_REGISTRY) \
 		--set global.imageRepositoryPrefix=$(IMAGE_REPOSITORY_PREFIX) \
-		--set server.image.tag=$(IMAGE_TAG) \
-		--set web.image.tag=$(IMAGE_TAG) \
+		--set global.imageTag=$(IMAGE_TAG) \
 		>/tmp/shepherd-helm-registry-render.yaml
 
 template-managed-access:

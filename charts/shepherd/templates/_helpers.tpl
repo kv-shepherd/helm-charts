@@ -101,6 +101,30 @@ app.kubernetes.io/component: {{ .component }}
 {{- default (printf "%s-token" (include "shepherd.managedClusterServiceAccountName" .) | trunc 63 | trimSuffix "-") .Values.managedClusterAccess.tokenSecret.name -}}
 {{- end -}}
 
+{{- define "shepherd.ingressTLSSecretName" -}}
+{{- default (printf "%s-tls" (include "shepherd.fullname" .) | trunc 63 | trimSuffix "-") .Values.ingress.selfSigned.secretName -}}
+{{- end -}}
+
+{{- define "shepherd.edgeTLSSecretName" -}}
+{{- default (printf "%s-edge-tls" (include "shepherd.fullname" .) | trunc 63 | trimSuffix "-") .Values.edge.tls.selfSigned.secretName -}}
+{{- end -}}
+
+{{- define "shepherd.publicBaseUrl" -}}
+{{- $configured := trim .Values.publicBaseUrl -}}
+{{- if $configured -}}
+{{- $configured -}}
+{{- else if and .Values.ingress.enabled .Values.ingress.hosts -}}
+{{- $firstHost := (index .Values.ingress.hosts 0).host | default "" | trim -}}
+{{- if $firstHost -}}
+{{- $scheme := "http" -}}
+{{- if or .Values.ingress.tls .Values.ingress.selfSigned.enabled -}}
+{{- $scheme = "https" -}}
+{{- end -}}
+{{- printf "%s://%s" $scheme $firstHost -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "shepherd.image" -}}
 {{- $root := .root -}}
 {{- $image := .image -}}
@@ -112,6 +136,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- $parts = append $parts . -}}
 {{- end -}}
 {{- $parts = append $parts $image.repository -}}
-{{- $tag := default (default "latest" $root.Values.global.imageTag) $image.tag -}}
+{{- $defaultTag := default "latest" $root.Chart.AppVersion -}}
+{{- $tag := default (default $defaultTag $root.Values.global.imageTag) $image.tag -}}
 {{- printf "%s:%s" (join "/" $parts) $tag -}}
 {{- end -}}

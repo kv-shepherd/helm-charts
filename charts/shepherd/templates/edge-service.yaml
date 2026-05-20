@@ -1,0 +1,34 @@
+{{- if .Values.edge.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "shepherd.componentName" (dict "root" . "component" "edge") }}
+  namespace: {{ include "shepherd.namespace" . }}
+  labels:
+    {{- include "shepherd.componentLabels" (dict "root" . "component" "edge") | nindent 4 }}
+  {{- with .Values.edge.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.edge.service.type }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+      {{- if and (eq .Values.edge.service.type "NodePort") .Values.edge.service.nodePorts.http }}
+      nodePort: {{ .Values.edge.service.nodePorts.http }}
+      {{- end }}
+    {{- if .Values.edge.tls.enabled }}
+    - name: https
+      port: 443
+      targetPort: https
+      protocol: TCP
+      {{- if and (eq .Values.edge.service.type "NodePort") .Values.edge.service.nodePorts.https }}
+      nodePort: {{ .Values.edge.service.nodePorts.https }}
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "shepherd.componentSelectorLabels" (dict "root" . "component" "edge") | nindent 4 }}
+{{- end }}

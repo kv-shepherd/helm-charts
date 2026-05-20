@@ -7,7 +7,7 @@ metadata:
     {{- include "shepherd.labels" . | nindent 4 }}
 data:
   SERVER_PORT: {{ .Values.server.port | quote }}
-  SERVER_PUBLIC_BASE_URL: {{ .Values.publicBaseUrl | default "https://localhost" | quote }}
+  SERVER_PUBLIC_BASE_URL: {{ include "shepherd.publicBaseUrl" . | quote }}
   SERVER_ALLOWED_ORIGINS: {{ .Values.server.allowedOrigins | quote }}
   SERVER_ALLOW_CREDENTIALS: {{ .Values.server.allowCredentials | quote }}
   SERVER_UNSAFE_ALLOW_ALL_ORIGINS: {{ .Values.server.unsafeAllowAllOrigins | quote }}

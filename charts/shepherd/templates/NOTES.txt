@@ -4,6 +4,9 @@ Release: {{ .Release.Name }}
 Namespace: {{ include "shepherd.namespace" . }}
 
 Services:
+{{- if .Values.edge.enabled }}
+  Edge:   {{ include "shepherd.componentName" (dict "root" . "component" "edge") }}:80
+{{- end }}
   Web:    {{ include "shepherd.componentName" (dict "root" . "component" "web") }}:{{ .Values.web.port }}
   Server: {{ include "shepherd.componentName" (dict "root" . "component" "server") }}:{{ .Values.server.port }}
 {{- if .Values.postgresql.enabled }}
@@ -11,17 +14,73 @@ Services:
 {{- else }}
   DB:     external DATABASE_URL
 {{- end }}
+{{- $publicBaseUrl := include "shepherd.publicBaseUrl" . }}
+{{- if $publicBaseUrl }}
+  URL:    {{ $publicBaseUrl }}
+{{- end }}
+
+{{- if and .Values.postgresql.enabled (not .Values.postgresql.persistence.enabled) }}
+
+WARNING: bundled PostgreSQL is using an emptyDir temporary volume.
+Data can be lost when the PostgreSQL Pod is deleted, evicted, or rescheduled.
+This mode is for evaluation only and is not recommended for production.
+{{- else if and .Values.postgresql.enabled .Values.postgresql.persistence.enabled (not .Values.postgresql.persistence.storageClassName) }}
+
+Bundled PostgreSQL persistence is enabled without an explicit StorageClass.
+Kubernetes will use the cluster default StorageClass. If the cluster has no
+default StorageClass, the PostgreSQL PVC will remain Pending until a
+StorageClass is selected.
+{{- end }}
 
 {{- if .Values.ingress.enabled }}
 Ingress routes /api to the server service and / to the web service.
+{{- if and .Values.ingress.selfSigned.enabled (not .Values.ingress.tls) }}
+Helm generated a self-signed ingress TLS Secret:
+  {{ include "shepherd.ingressTLSSecretName" . }}
+Production installs should provide a CA-issued certificate with ingress.tls.
+The generated self-signed certificate is intended for bootstrap and evaluation.
+{{- else if .Values.ingress.tls }}
+Ingress TLS is using the Secret configured by ingress.tls.
 {{- else }}
-Ingress is disabled. Forward the web service locally with:
-  kubectl -n {{ include "shepherd.namespace" . }} port-forward svc/{{ include "shepherd.componentName" (dict "root" . "component" "web") }} 3000:{{ .Values.web.port }}
+WARNING: ingress TLS is disabled. Release-mode sessions expect HTTPS.
+Provide ingress.tls or enable ingress.selfSigned for evaluation installs.
+{{- end }}
+{{- else }}
+{{- if .Values.edge.enabled }}
+Ingress is disabled. Forward the edge service locally with:
+{{- if .Values.edge.tls.enabled }}
+  kubectl -n {{ include "shepherd.namespace" . }} port-forward svc/{{ include "shepherd.componentName" (dict "root" . "component" "edge") }} 3443:443
+{{- else }}
+  kubectl -n {{ include "shepherd.namespace" . }} port-forward svc/{{ include "shepherd.componentName" (dict "root" . "component" "edge") }} 3000:80
+{{- end }}
+{{- if eq .Values.edge.service.type "NodePort" }}
+Or open the edge NodePort:
+  kubectl -n {{ include "shepherd.namespace" . }} get svc {{ include "shepherd.componentName" (dict "root" . "component" "edge") }}
+{{- end }}
+{{- else }}
+Ingress and edge proxy are disabled. Expose both /api and / through your own
+reverse proxy, or enable edge.enabled for port-forward and NodePort access.
+{{- end }}
+{{- end }}
+
+{{- if not $publicBaseUrl }}
+No publicBaseUrl is configured. This is acceptable for port-forward or basic
+NodePort evaluation. Set publicBaseUrl for production, external auth callbacks,
+and stable browser-facing redirects.
 {{- end }}
 
 For production, set stable security.sessionSecret and security.encryptionKey
 values or provide secrets.existingSecret. Generated values are reused on
 upgrades when Helm can read the existing Secret.
+
+{{- if .Values.bootstrapSeed.enabled }}
+Bootstrap seed is enabled. Helm runs a post-install/post-upgrade Job that
+creates the built-in roles and the default admin user for first installs.
+First login: admin / admin, then change the password.
+{{- else }}
+Bootstrap seed is disabled. Run /usr/local/bin/seed from the server image before
+the first login.
+{{- end }}
 
 {{- if .Values.managedClusterAccess.enabled }}
 

@@ -7,7 +7,7 @@ namespace:
   labels: {}
   annotations: {}
 
-publicBaseUrl: https://localhost
+publicBaseUrl: ""
 
 global:
   imageRegistry: ghcr.io
@@ -120,6 +120,19 @@ server:
   affinity: {}
   extraEnv: []
 
+bootstrapSeed:
+  enabled: true
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 600
+  annotations: {}
+  podAnnotations: {}
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
 web:
   replicaCount: 1
   image:
@@ -153,6 +166,40 @@ service:
   type: ClusterIP
   annotations: {}
 
+edge:
+  enabled: true
+  image:
+    repository: nginx
+    tag: "1.30.1-alpine"
+    pullPolicy: IfNotPresent
+  port: 8080
+  tls:
+    enabled: true
+    port: 8443
+    existingSecret: ""
+    selfSigned:
+      enabled: true
+      secretName: ""
+      commonName: localhost
+      dnsNames:
+        - localhost
+      ipAddresses:
+        - 127.0.0.1
+      durationDays: 365
+  service:
+    type: ClusterIP
+    annotations: {}
+    nodePorts:
+      http: null
+      https: null
+  podAnnotations: {}
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
 ingress:
   enabled: false
   className: ""
@@ -161,4 +208,8 @@ ingress:
   webPath: /
   hosts:
     - host: shepherd.example.com
+  selfSigned:
+    enabled: true
+    secretName: ""
+    durationDays: 365
   tls: []
