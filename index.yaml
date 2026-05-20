@@ -1,0 +1,44 @@
+apiVersion: v1
+entries:
+  shepherd:
+  - apiVersion: v2
+    appVersion: 0.1.1-alpha.6
+    created: "2026-05-20T05:32:22.913628403Z"
+    description: KubeVirt Shepherd governance platform
+    digest: 31d8cb5a562fedb6238417e9ae44772fc9ad5b465a28e76e84adade11fc4f400
+    home: https://github.com/kv-shepherd/shepherd
+    keywords:
+    - kubevirt
+    - virtual-machines
+    - governance
+    - self-service
+    maintainers:
+    - name: KubeVirt Shepherd Authors
+    name: shepherd
+    sources:
+    - https://github.com/kv-shepherd/shepherd
+    type: application
+    urls:
+    - https://kv-shepherd.github.io/helm-charts/shepherd-0.1.19.tgz
+    version: 0.1.19
+  - apiVersion: v2
+    appVersion: 0.1.1-alpha.5
+    created: "2026-05-20T05:32:22.911570803Z"
+    description: KubeVirt Shepherd governance platform
+    digest: c179e215fc7e03c19a3a77c9ed3eaf81b93c4318729f1d86ed4b219550d66c7c
+    home: https://github.com/kv-shepherd/shepherd
+    keywords:
+    - kubevirt
+    - virtual-machines
+    - governance
+    - self-service
+    maintainers:
+    - name: KubeVirt Shepherd Authors
+    name: shepherd
+    sources:
+    - https://github.com/kv-shepherd/shepherd
+    type: application
+    urls:
+    - https://kv-shepherd.github.io/helm-charts/shepherd-0.1.18.tgz
+    version: 0.1.18
+generated: "2026-05-20T05:32:22.909784939Z"
