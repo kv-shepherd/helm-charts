@@ -10,47 +10,72 @@ Kubernetes-native Helm charts for KubeVirt Shepherd.
 
 ## Quick Start
 
-Install with the published chart, default public images, and bundled
-PostgreSQL 18:
+Add the chart repository once:
 
 ```bash
 helm repo add shepherd https://kv-shepherd.github.io/helm-charts
 helm repo update
-helm upgrade --install shepherd shepherd/shepherd \
-  --namespace shepherd --create-namespace \
-  --set ingress.enabled=true \
-  --set ingress.hosts[0].host=shepherd.example.com \
-  --set postgresql.persistence.storageClassName=<storage-class> \
-  --wait
 ```
 
-When ingress is enabled and `publicBaseUrl` is omitted, the chart derives
-`https://<first-ingress-host>` automatically. Set `publicBaseUrl` explicitly
-only when the externally visible URL differs from the ingress host.
-
-If you omit `postgresql.persistence.storageClassName`, Kubernetes uses the
-cluster's default StorageClass. For evaluation-only installs without persistent
-storage, set `postgresql.persistence.enabled=false`; this creates an ephemeral
-volume and data can be lost when the PostgreSQL Pod is rescheduled.
-
-When ingress is enabled, provide your normal TLS Secret through `ingress.tls`
-for production. If `ingress.tls` is omitted, the chart generates a self-signed
-certificate by default so first deploys still come up over HTTPS.
-
-The default install also runs the bootstrap seed Job, creating `admin / admin`
-for first login with a forced password change.
-
-For IP-only evaluation without DNS or ingress, expose the chart's HTTPS edge
-proxy with `edge.service.type=NodePort`; it routes `/api` and `/` through one
-service.
-
-For production, use an external PostgreSQL 18 database and stable secrets in a
-values file:
+Demo install with temporary PostgreSQL storage and local port-forward:
 
 ```bash
 helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
-  -f values.prod.yaml
+  --set postgresql.persistence.enabled=false
+
+kubectl -n shepherd port-forward svc/shepherd-edge 3443:443
+```
+
+Open `https://127.0.0.1:3443`. This mode uses an `emptyDir` database volume;
+data can be lost when the PostgreSQL Pod is deleted, evicted, or rescheduled.
+
+Small-cluster install without an Ingress controller:
+
+```bash
+STORAGE_CLASS=standard
+NODE_IP="$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')"
+
+helm upgrade --install shepherd shepherd/shepherd \
+  --namespace shepherd --create-namespace \
+  --set edge.service.type=NodePort \
+  --set edge.service.nodePorts.https=30443 \
+  --set "edge.tls.selfSigned.commonName=${NODE_IP}" \
+  --set "edge.tls.selfSigned.ipAddresses[0]=${NODE_IP}" \
+  --set "postgresql.persistence.storageClassName=${STORAGE_CLASS}"
+```
+
+Open `https://${NODE_IP}:30443`.
+
+Install with an Ingress controller and your own TLS certificate:
+
+```bash
+SHEPHERD_HOST=shepherd.example.com
+STORAGE_CLASS=standard
+
+kubectl create namespace shepherd --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n shepherd create secret tls shepherd-tls \
+  --cert ./tls.crt \
+  --key ./tls.key \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install shepherd shepherd/shepherd \
+  --namespace shepherd --create-namespace \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set "ingress.hosts[0].host=${SHEPHERD_HOST}" \
+  --set "ingress.tls[0].secretName=shepherd-tls" \
+  --set "ingress.tls[0].hosts[0]=${SHEPHERD_HOST}" \
+  --set "postgresql.persistence.storageClassName=${STORAGE_CLASS}"
+```
+
+First login is `admin / admin`; change the password immediately.
+
+Check rollout status when needed:
+
+```bash
+kubectl -n shepherd get pods
+helm -n shepherd status shepherd
 ```
 
 See [`charts/shepherd`](charts/shepherd) for chart values and
