@@ -20,7 +20,7 @@ The Makefile runs Helm through `alpine/helm:3.19.0`.
 
 ## Registry Override Render
 
-Use this path to test non-GHCR registries without changing tracked values:
+Use this path to test alternate registries without changing tracked values:
 
 ```bash
 make template-registry \
@@ -31,8 +31,8 @@ make template-registry \
 
 The public defaults remain:
 
-- `ghcr.io/kv-shepherd/shepherd-server`
-- `ghcr.io/kv-shepherd/shepherd-web`
+- `docker.io/kvshepherd/shepherd-server`
+- `docker.io/kvshepherd/shepherd-web`
 
 ## Managed Cluster Access Render
 

@@ -1,8 +1,8 @@
 .PHONY: lint template template-external template-managed-access template-registry package validate
 
 HELM_IMAGE ?= alpine/helm:3.19.0
-IMAGE_REGISTRY ?= ghcr.io
-IMAGE_REPOSITORY_PREFIX ?= kv-shepherd
+IMAGE_REGISTRY ?= docker.io
+IMAGE_REPOSITORY_PREFIX ?= kvshepherd
 IMAGE_TAG ?= $(shell sed -nE 's/^appVersion:[[:space:]]*"?([^"]+)"?/\1/p' charts/shepherd/Chart.yaml)
 
 lint:

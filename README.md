@@ -10,11 +10,13 @@ Kubernetes-native Helm charts for KubeVirt Shepherd.
 
 ## Quick Start
 
-Install with the published OCI chart, default GHCR images, and bundled
+Install with the published chart, default public images, and bundled
 PostgreSQL 18:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm repo add shepherd https://kv-shepherd.github.io/helm-charts
+helm repo update
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set ingress.enabled=true \
   --set ingress.hosts[0].host=shepherd.example.com \
@@ -46,7 +48,7 @@ For production, use an external PostgreSQL 18 database and stable secrets in a
 values file:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   -f values.prod.yaml
 ```
@@ -55,7 +57,7 @@ See [`charts/shepherd`](charts/shepherd) for chart values and
 [docs/MANAGED_CLUSTER_RBAC.md](docs/MANAGED_CLUSTER_RBAC.md) for managed-cluster
 RBAC and kubeconfig creation.
 
-For local chart development before publishing, replace the OCI reference with
+For local chart development before publishing, replace `shepherd/shepherd` with
 `./charts/shepherd`.
 
 ## Development

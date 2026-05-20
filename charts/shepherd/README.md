@@ -17,7 +17,9 @@ The bundled PostgreSQL 18 install is intended for evaluation and small
 single-cluster installs. Persistent PostgreSQL requires a StorageClass:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm repo add shepherd https://kv-shepherd.github.io/helm-charts
+helm repo update
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set postgresql.persistence.storageClassName=<storage-class> \
   --wait
@@ -30,7 +32,7 @@ PostgreSQL PVC will stay pending until a StorageClass is selected.
 For temporary evaluation installs only, disable persistence:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set postgresql.persistence.enabled=false \
   --wait
@@ -48,7 +50,7 @@ Production installs should prefer an external PostgreSQL 18 service and stable
 secrets:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set publicBaseUrl=https://shepherd.example.com \
   --set postgresql.enabled=false \
@@ -61,7 +63,7 @@ helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
 Enable ingress when the cluster has an ingress controller:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set ingress.enabled=true \
   --set ingress.className=nginx \
@@ -90,7 +92,7 @@ backend and `/` to the web UI, matching the Docker Compose topology. To access
 Shepherd through a node IP, expose the edge service as a NodePort:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set edge.service.type=NodePort \
   --set edge.service.nodePorts.https=30443 \
@@ -144,7 +146,7 @@ For clusters managed by Shepherd, prefer a dedicated managed-cluster
 ServiceAccount and kubeconfig:
 
 ```bash
-helm upgrade --install shepherd oci://ghcr.io/kv-shepherd/charts/shepherd \
+helm upgrade --install shepherd shepherd/shepherd \
   --namespace shepherd --create-namespace \
   --set managedClusterAccess.enabled=true
 ```
@@ -165,13 +167,13 @@ When `secrets.existingSecret` is set, the Secret must contain:
 
 Image references are assembled from `global.imageRegistry`,
 `global.imageRepositoryPrefix`, `global.imageTag`, and the per-component image
-repository. The public defaults use GHCR and the chart `appVersion` unless a
-tag is set globally or per component:
+repository. The public defaults use Docker Hub and the chart `appVersion`
+unless a tag is set globally or per component:
 
 ```yaml
 global:
-  imageRegistry: ghcr.io
-  imageRepositoryPrefix: kv-shepherd
+  imageRegistry: docker.io
+  imageRepositoryPrefix: kvshepherd
   imageTag: ""
 server:
   image:
@@ -183,16 +185,15 @@ web:
 
 ## Publishing
 
-Helm does not host project charts on `helm.sh`. Publish this chart either as an
-OCI chart, for example `ghcr.io/kv-shepherd/charts/shepherd`, or as an
+Helm does not host project charts on `helm.sh`. Publish this chart through an
 index.yaml-based chart repository such as GitHub Pages. Artifact Hub can index
-both forms.
+that repository after ownership metadata is configured.
 
 Before public listing, prepare:
 
 - a released chart package with a SemVer `version`
 - matching Shepherd container images for the documented default tag
-- public chart storage, preferably GHCR OCI or GitHub Pages
+- public chart storage
 - an Artifact Hub publisher account or organization
 - `artifacthub-repo.yml` metadata for ownership/verified publisher
 - optional provenance or Sigstore signing for release integrity

@@ -10,8 +10,8 @@ namespace:
 publicBaseUrl: ""
 
 global:
-  imageRegistry: ghcr.io
-  imageRepositoryPrefix: kv-shepherd
+  imageRegistry: docker.io
+  imageRepositoryPrefix: kvshepherd
   imageTag: ""
   imagePullSecrets: []
 
