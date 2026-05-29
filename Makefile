@@ -1,4 +1,4 @@
-.PHONY: lint template template-external template-managed-access template-registry package validate
+.PHONY: lint template template-external template-managed-access template-monitoring template-registry check-observability package validate
 
 HELM_IMAGE ?= alpine/helm:3.19.0
 IMAGE_REGISTRY ?= docker.io
@@ -35,8 +35,17 @@ template-managed-access:
 		--set 'managedClusterAccess.rbac.namespaced.targetNamespaces[0]=shepherd-workloads' \
 		>/tmp/shepherd-helm-managed-access-render.yaml
 
+template-monitoring:
+	docker run --rm -v "$(CURDIR):/work" -w /work $(HELM_IMAGE) template shepherd charts/shepherd --namespace shepherd \
+		--set observability.serviceMonitor.enabled=true \
+		--set observability.prometheusRule.enabled=true \
+		>/tmp/shepherd-helm-monitoring-render.yaml
+
+check-observability:
+	HELM_IMAGE=$(HELM_IMAGE) bash scripts/check-observability.sh
+
 package:
 	mkdir -p dist
 	docker run --rm -v "$(CURDIR):/work" -w /work $(HELM_IMAGE) package charts/shepherd --destination dist
 
-validate: lint template template-external template-registry template-managed-access
+validate: lint template template-external template-registry template-managed-access template-monitoring check-observability

@@ -120,6 +120,36 @@ server:
   affinity: {}
   extraEnv: []
 
+observability:
+  metrics:
+    enabled: true
+    path: /metrics
+    databaseMetricsEnabled: true
+    databaseMetricsTimeout: 2s
+    riverMetricsEnabled: true
+    riverMetricsTimeout: 2s
+  tracing:
+    enabled: false
+    serviceName: shepherd
+    exporter: otlp_http
+    sampleRatio: 0.10
+    shutdownTimeout: 5s
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+    jobLabel: app.kubernetes.io/name
+    interval: 30s
+    scrapeTimeout: ""
+    scheme: http
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+    targetJob: ""
+
 bootstrapSeed:
   enabled: true
   backoffLimit: 6
