@@ -166,6 +166,73 @@
       "additionalProperties": false
     },
     "server": { "$ref": "#/definitions/workload" },
+    "observability": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "path": {
+              "type": "string",
+              "pattern": "^/[^?#]*$"
+            },
+            "databaseMetricsEnabled": { "type": "boolean" },
+            "databaseMetricsTimeout": { "type": "string" },
+            "riverMetricsEnabled": { "type": "boolean" },
+            "riverMetricsTimeout": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "tracing": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "serviceName": { "type": "string", "minLength": 1 },
+            "exporter": {
+              "type": "string",
+              "enum": ["otlp_http", "stdout"]
+            },
+            "sampleRatio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "shutdownTimeout": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "namespace": { "type": "string" },
+            "labels": { "type": "object" },
+            "annotations": { "type": "object" },
+            "jobLabel": { "type": "string" },
+            "interval": { "type": "string", "minLength": 1 },
+            "scrapeTimeout": { "type": "string" },
+            "scheme": {
+              "type": "string",
+              "enum": ["http", "https"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "prometheusRule": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "namespace": { "type": "string" },
+            "labels": { "type": "object" },
+            "annotations": { "type": "object" },
+            "targetJob": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "bootstrapSeed": {
       "type": "object",
       "properties": {

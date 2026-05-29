@@ -6,7 +6,7 @@ Kubernetes-native Helm charts for KubeVirt Shepherd.
 
 | Chart | Description |
 |-------|-------------|
-| [`shepherd`](charts/shepherd) | KubeVirt Shepherd server, web UI, services, optional ingress, and optional PostgreSQL 18 StatefulSet |
+| [`shepherd`](charts/shepherd) | KubeVirt Shepherd server, web UI, services, optional ingress, optional Prometheus Operator monitoring resources, and optional PostgreSQL 18 StatefulSet |
 
 ## Quick Start
 
@@ -80,7 +80,10 @@ helm -n shepherd status shepherd
 
 See [`charts/shepherd`](charts/shepherd) for chart values and
 [docs/MANAGED_CLUSTER_RBAC.md](docs/MANAGED_CLUSTER_RBAC.md) for managed-cluster
-RBAC and kubeconfig creation.
+RBAC and kubeconfig creation. The chart README also documents the optional
+`ServiceMonitor` and `PrometheusRule` resources for Prometheus Operator-based
+monitoring. See [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md) for the
+observability value contract and render gate.
 
 For local chart development before publishing, replace `shepherd/shepherd` with
 `./charts/shepherd`.
@@ -89,8 +92,9 @@ For local chart development before publishing, replace `shepherd/shepherd` with
 
 ```bash
 make validate
+make check-observability
 make package
 ```
 
-See [docs/TESTING.md](docs/TESTING.md) for render, registry override, and
-server-side dry-run examples.
+See [docs/TESTING.md](docs/TESTING.md) for render, registry override,
+monitoring, and server-side dry-run examples.

@@ -5,10 +5,12 @@ This chart deploys KubeVirt Shepherd with:
 - Go API server Deployment and Service
 - Next.js web Deployment and Service
 - Kubernetes Secret and ConfigMap for runtime configuration
+- Prometheus `/metrics` runtime configuration
 - optional Ingress that routes `/api` to the server and `/` to the web UI
 - optional Namespace rendering for GitOps/static manifest workflows
 - optional namespace-scoped or cluster-scoped RBAC binding
 - optional managed-cluster ServiceAccount and least-privilege RBAC
+- optional Prometheus Operator `ServiceMonitor` and `PrometheusRule`
 - optional PostgreSQL 18 StatefulSet for evaluation installs
 
 ## Add The Repository
@@ -134,6 +136,67 @@ If `postgresql.persistence.storageClassName` is empty, Kubernetes uses the
 cluster default StorageClass. On clusters without a default StorageClass, the
 PostgreSQL PVC will stay pending until a StorageClass is selected.
 
+## Observability
+
+The chart enables Shepherd's low-cardinality Prometheus metrics by default:
+
+```yaml
+observability:
+  metrics:
+    enabled: true
+    path: /metrics
+    databaseMetricsEnabled: true
+    riverMetricsEnabled: true
+  tracing:
+    enabled: false
+```
+
+HTTP tracing stays disabled by default. To export HTTP ingress traces through
+OTLP/HTTP, set an endpoint through normal OpenTelemetry environment variables
+using `server.extraEnv` and enable tracing:
+
+```yaml
+observability:
+  tracing:
+    enabled: true
+    exporter: otlp_http
+    sampleRatio: 0.10
+server:
+  extraEnv:
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://otel-collector.observability:4318
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      valueFrom:
+        secretKeyRef:
+          name: shepherd-otel
+          key: headers
+```
+
+For clusters that run Prometheus Operator, enable the optional monitoring
+resources:
+
+```bash
+helm upgrade --install shepherd shepherd/shepherd \
+  --namespace shepherd --create-namespace \
+  --set observability.serviceMonitor.enabled=true \
+  --set observability.prometheusRule.enabled=true
+```
+
+The chart renders:
+
+- a `ServiceMonitor` that scrapes the server service's named `http` port at
+  `observability.metrics.path` and defaults `jobLabel` to
+  `app.kubernetes.io/name`, keeping the Prometheus `job="shepherd"` label
+  aligned with the packaged alerts
+- a `PrometheusRule` containing the accepted Shepherd recording and alert rules
+
+These resources require the Prometheus Operator CRDs to already exist. They do
+not install Prometheus, Alertmanager, Grafana, receivers, routing policy, or
+long-term storage.
+If you override `nameOverride` or `observability.serviceMonitor.jobLabel`, set
+`observability.prometheusRule.targetJob` to the resulting Prometheus `job`
+label so the target-down alert stays aligned.
+
 ## Verify
 
 ```bash
@@ -189,6 +252,13 @@ When `secrets.existingSecret` is set, the Secret must contain:
 - `SECURITY_SESSION_SECRET`
 - `SECURITY_ENCRYPTION_KEY`
 - `POSTGRES_PASSWORD` when `postgresql.enabled=true`
+
+The server ConfigMap includes the `OBSERVABILITY_*` environment variables used
+by the public Docker Compose deployment, keeping Helm and Compose defaults
+aligned for metrics, database/River metrics, request correlation, worker
+correlation, and default-off tracing. See
+[`docs/OBSERVABILITY.md`](../../docs/OBSERVABILITY.md) for the chart-level
+observability contract and render gate.
 
 Image references are assembled from `global.imageRegistry`,
 `global.imageRepositoryPrefix`, `global.imageTag`, and the per-component image

@@ -15,6 +15,10 @@ The target runs:
 - external PostgreSQL render with Ingress enabled
 - registry override render for release image path checks
 - managed cluster RBAC render with selected namespace binding
+- Prometheus Operator monitoring render with `ServiceMonitor` and
+  `PrometheusRule`
+- observability render gate for default-off CRDs, server env, scrape endpoint,
+  rule counts, and Prometheus template escaping
 
 The Makefile runs Helm through `alpine/helm:3.19.0`.
 
@@ -44,6 +48,25 @@ This render enables `managedClusterAccess.enabled=true` and verifies the
 selected-namespace RoleBinding path. The default managed-cluster mode binds VM
 permissions across all namespaces so Shepherd can create namespaces before VM
 creation.
+
+## Monitoring Render
+
+```bash
+make template-monitoring
+```
+
+This render enables `observability.serviceMonitor.enabled=true` and
+`observability.prometheusRule.enabled=true`. It verifies that the chart can
+render Prometheus Operator resources without installing the Prometheus Operator
+CRDs locally.
+
+```bash
+make check-observability
+```
+
+This gate renders the default chart and the monitoring-enabled chart, then
+checks the observability-specific resource contract. `make validate` includes
+this gate.
 
 ## Server-Side Dry Run
 
