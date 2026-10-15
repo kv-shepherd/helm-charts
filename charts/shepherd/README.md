@@ -1,4 +1,16 @@
-# Shepherd Chart
+# KubeVirt Shepherd Chart
+
+Official Helm chart for KubeVirt Shepherd (`kv-shepherd`), an open-source VM
+management and governance platform for KubeVirt.
+
+[Official website](https://kv-shepherd.io/) ·
+[中文官网](https://kv-shepherd.io/zh/) ·
+[Project source](https://github.com/kv-shepherd/shepherd) ·
+[Helm deployment guide](https://github.com/kv-shepherd/shepherd/blob/main/docs/DEPLOYMENT.md#helm-deployment)
+
+For a walkthrough with simulated data, use the
+[browser demo](https://demo.kv-shepherd.io/). The chart installs the application
+on your own Kubernetes infrastructure.
 
 This chart deploys KubeVirt Shepherd with:
 
